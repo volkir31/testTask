@@ -10,9 +10,8 @@ import (
 )
 
 func main() {
-	facts := getSaveFacts()
 	httpStorage := storage.HttpStorage{Token: os.Getenv("TOKEN")}
-	httpStorage.Save(facts)
+	httpStorage.Save(getSaveFacts())
 }
 
 func getSaveFacts() []request.SaveFact {

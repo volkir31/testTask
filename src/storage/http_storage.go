@@ -9,6 +9,7 @@ import (
 	"testTask/src/request"
 )
 
+// HttpStorage хранилище, работающие по http
 type HttpStorage struct {
 	Token string
 }
@@ -25,6 +26,7 @@ func (s *HttpStorage) Save(facts []request.SaveFact) {
 	waitGroup.Wait()
 }
 
+// Записывает события в буфер
 func (s *HttpStorage) produce(buffer chan<- request.SaveFact, facts []request.SaveFact) {
 	for _, fact := range facts {
 		buffer <- fact
@@ -33,13 +35,20 @@ func (s *HttpStorage) produce(buffer chan<- request.SaveFact, facts []request.Sa
 	waitGroup.Done()
 }
 
-func (s *HttpStorage) consume(channel chan request.SaveFact) {
+// Читает события из буфера, отправляет их и потом проверяет их наличие
+func (s *HttpStorage) consume(channel <-chan request.SaveFact) {
 	for fact := range channel {
-		if err := s.send(fact); err != nil {
-			fmt.Println("error sending fact:", err)
-			continue
+		for try := 0; try < 3; try++ {
+			if err := s.send(fact); err != nil {
+				fmt.Println(fmt.Sprintf("attempt #%d error sending fact: %s", try, err))
+				continue
+			}
+			if err := s.checkFact(fact.GetFact); err != nil {
+				fmt.Println(fmt.Sprintf("attempt #%d error checking fact: %s", try, err))
+				continue
+			}
+			break
 		}
-		s.checkFact(fact.GetFact)
 	}
 	waitGroup.Done()
 }
